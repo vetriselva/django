@@ -1,0 +1,239 @@
+{%load static %}
+
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Quotation</title>
+	 <head>
+        <link rel="stylesheet" type="text/css" href="{% static '/bootstrap/css/bootstrap.min.css'%}">
+   		<script src="{% static '/js/jquery.js'%}"></script>
+   		<link rel="stylesheet" href="{% static '/css/font-awesome.min.css'%}">
+   		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    </head>
+</head>
+<style type="text/css">
+	.myInput{
+		width:70%;
+	}
+</style>
+<body>
+	
+	<form action='.' id="quote-form">{% csrf_token %}
+        <div class="container">
+            <div class="row">
+                 {% for field in form %}
+                    <div class="fieldWrapper">
+            			{{ field.label_tag }}
+            			{{ field }}
+                    </div>&nbsp&nbsp
+                {% endfor %}
+                <br>
+            </div>
+            &nbsp
+            <br>
+            <div class="container "id="quote_detail">
+		    	<div class="row">
+		       		 <button class="btn btn-primary" id="id_addline">Add line</button>
+		    	</div>
+			    <table class="table">
+	            	<thead>
+	            		<tr><td>PartNo</td><td>Description</td><td>Qty</td><td>Cost</td><td>GST%</td><td>Total</td></tr>
+	            	</thead>
+	            </table>
+	            <input type="hidden" name="" id="idId" value="1">
+	            <div id="initQuoteId"></div>
+		    </div>    
+        </div>
+             <div class="row">
+            	<div class="col-md-8">
+            	</div>
+            	<div class="col-md-4">
+        			<div class="card" style="width: 15rem;">
+					  <div class="card-body">
+						  <pre>Total Part:   <span id="id_summary_total"></span></pre>
+						  <pre>GST%:         <span id="id_summary_gst"></span></pre>
+						  <pre>Total W/Tax:  <span id="id_summary_total_tax"></span></pre>
+					  </div>
+					  <input type="submit" class="btn btn-primary"name="Register">
+					</div>
+            	</div>
+            </div>
+    </form>
+    
+	    
+	<script type="text/javascript">
+		var result_summary= '';
+		var summary = {};
+
+		var csrftoken = '{{ csrf_token }}'
+		$('[type=submit]').click(function(e){
+			var total_id = Number($('#idId').val())
+			calculation()
+			e.preventDefault()
+			var quote_number 	= $('#id_quote_number').val()
+			var quote_date 		= $('#id_quote_date').val()
+			var customer_name = $('#id_customer_name').val()
+			var salse_person 	= $('#id_salse_person').val()
+			var quote_status 	= $('#id_quote_status').val()
+			var quote_info= {};
+			var result= [];
+			var data = {};
+			function QuoteInfo(){
+				return { "part" :'',"desc":"","qty":"","cost":"","gst":'', "totald":""}
+			};
+			for (var id=1 ; id<total_id; id++){
+				partId    = $('#partId'+id).val();
+				descId    = $('#descId'+id).val();
+				qtyId     = $('#qtyId'+id).val();
+				costId    = $('#costId'+id).val();
+				gstId     = $('#gstId'+id).val();
+				totalId   =$('#totalId'+id).val();
+				if(typeof(partId) !="undefined"){
+				var info = QuoteInfo();
+				info.part   =partId
+				info.desc   =descId
+				info.qty    =qtyId
+				info.cost   =costId
+				info.gst   =gstId
+				info.total  =totalId
+				result.push(info)
+				}
+
+			}
+			result = JSON.stringify(result);
+			result_summary = JSON.stringify(summary);
+			
+			const Url ="http://localhost:8000/api/estimate/";
+			$.ajax({
+				'url'	: Url,
+				'type'	: 'POST',
+				'dataType': 'json',
+				'data'  : {
+
+					"csrfmiddlewaretoken"	: csrftoken,
+					"quote_number"			: quote_number,
+					"quote_date"			: quote_date,
+					"customer_name"			: customer_name,
+					"salse_person"			: salse_person,
+					"quote_status"			: quote_status,
+					"quote_info" 			: result,
+					"quote_summary"			: result_summary,
+				},
+				success:function(res){
+					if(res.quote_id){
+						
+						var quote_number = res.quote_number
+						$('#id_quote_number').val(quote_number+1);
+						// console.log(quote_number);
+						alert("Quote Created Successfully")
+        				window.location = "http://localhost:8000/estimate/"+id+"/";
+  
+					}
+					else{
+						console.log('something went wrong');
+					}
+				},
+				error:function(er){
+					console.log(er.responseJSON)
+				}
+			})
+		})
+
+		$('#id_addline').click(function(e) {
+			e.preventDefault()
+
+			var id = Number($('#idId').val())
+			$('#initQuoteId').append('<table class="table" id="append'+id+'">'+
+            	
+	              '<tr>'+
+		              	'<td><select name="part" class="form-control " id="partId'+id+'">'+
+	    		      	'<option value="">Selelct</option>'+
+				  		'<option value="1">IP14-Mens Bobby Polo Shirt-4 Colors</option>'+
+				  		'<option value="2">IP14-Womens Bobby Polo Shirt-4 Colors</option>'+
+				 		'<option value="3">IP14-Gens Polo Shirt-4 Colors</option>'+
+				 	    '<option value="4">IP14-Womens Polo Shirt-4 Colors</option>'+
+						'</select></td>'+
+	                	'<td><textarea name="partno"id="descId'+id+'"class="form-control"></textarea></td>'+
+	                	'<td><input type="text" onkeypress="calculation()" onmouseleave="calculation()"name="qty" id="qtyId'+id+'"class="form-control myInput"></td>'+
+	                	'<td><input type="text" onkeypress="calculation()"onmouseleave="calculation()" name="cost" id="costId'+id+'"class="form-control  myInput"></td>'+
+	                	'<td><input type="text" onkeypress="calculation()" onmouseleave="calculation()" name="gst" id="gstId'+id+'"class="form-control myInput"></td>'+
+	                	'<td><input type="text"name="total"id="totalId'+id+'"class="form-control myInput"></td>'+
+	                	'<td><span onclick="deleteRow('+id+')"><i class="fa fa-trash"></i></span></td>'+
+	                	
+	                '</tr>'+
+	           
+            '</table>')
+			var id= id+1;
+			$('#idId').val(id)
+		});
+		function deleteRow(id){
+
+			$('#append'+id).remove()
+			
+		}
+		 function calculation(){
+		 	var total_summary= 0;
+		 	var gst_summary  = 0;
+		 	var total_with_tax = 0;
+			var total_id = Number($('#idId').val())
+			for (var i = 0; i < total_id; i++) {
+				qtyId     = $('#qtyId'+i).val();
+				costId    = $('#costId'+i).val();
+				gstId     = $('#gstId'+i).val();
+				var total = Number(qtyId) *  Number(costId);
+				// console.log('total',total);
+				var percentage = Number((total * Number(gstId))/100)
+				// console.log('percentage',percentage);
+				$('#totalId'+i).val(total+percentage);
+				total_summary += total?total:0;
+				gst_summary   += percentage?percentage:0;
+				total_with_tax += (total+percentage)?total+percentage:0;
+			}
+			$('#id_summary_total').html(total_summary);
+			$('#id_summary_gst').html(gst_summary);
+			$('#id_summary_total_tax').html(total_with_tax);
+			summary['summary_total'] 	= total_summary;
+			summary['summary_gst']		= gst_summary;
+			summary['summary_tax_gst']	= total_with_tax;
+			
+ 		}
+		// estimate_get()
+		// function estimate_get(){
+		// 	const Url = "http://localhost:8000/api/estimate/";
+		// 	fetch(Url).
+		// 	then(data =>{
+		// 		return data.json()
+		// 	}).
+		// 	then(res=>{
+		// 		console.log(res);
+		// 	})
+		// }
+		get_estimate_id()
+		function get_estimate_id(){
+			const Url = "http://localhost:8000/api/estimate_id/";
+			fetch(Url).
+			then(data =>{
+				return data.json()
+			}).
+			then(res=>{
+				console.log(res);
+				$('#id_quote_number').val(res.estimate_id+1);
+			})
+		}
+		function estimate_post(){
+			const Url 	= "http://localhost:8000/api/estimate/"
+		}
+		var quoteStatus = document.getElementById('id_quote_status');
+		quoteStatus.addEventListener('change', function(){
+			if (quoteStatus.value != 'IQ'){
+				document.getElementById('quote_detail').style.display = "none";
+			}else{
+				document.getElementById('quote_detail').style.display = "block";
+			}
+		})
+
+      
+
+	</script>
+</body>
+</html>
